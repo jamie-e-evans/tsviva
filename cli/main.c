@@ -1,73 +1,43 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 
 #define INITIAL_CAPACITY 4096
 
-static int read_all(FILE *f, char **out, size_t *out_len) {
-    if (!f || !out || !out_len) {
-        return EXIT_FAILURE;
-    }
-
-    *out = NULL;
-    *out_len = 0;
-
-    size_t capacity = INITIAL_CAPACITY;
-    char *buffer = malloc(capacity);
-
-    if (!buffer) {
-        return EXIT_FAILURE;
-    }
-
+/* Reads f to the end into *buf, which must point to a malloc'd block of
+   *cap bytes. Grows the block with realloc when needed, updating *buf and
+   *cap. Stores the byte count in *out_len. Returns 0 on success, -1 on
+   failure. On failure *buf is still a valid block that the caller must
+   free. */
+static int read_all(FILE *f, char **buf, size_t *cap, size_t *out_len) {
     size_t total = 0;
 
-    while (1) {
-        if (total == capacity) {
-            if (capacity > SIZE_MAX / 2) {
-                free(buffer);
-                return EXIT_FAILURE;
+    for (;;) {
+        if (total == *cap) {
+            if (*cap > SIZE_MAX / 2) {
+                return -1;
             }
-
-            size_t new_capacity = capacity * 2;
-            char *tmp = realloc(buffer, new_capacity);
-
-            if (!tmp) {
-                free(buffer);
-                return EXIT_FAILURE;
+            char *tmp = realloc(*buf, *cap * 2);
+            if (tmp == NULL) {
+                return -1;          /* *buf is untouched and still valid */
             }
-
-            buffer = tmp;
-            capacity = new_capacity;
+            *buf = tmp;
+            *cap *= 2;
         }
 
-        size_t bytes_read = fread(
-            buffer + total,
-            1,
-            capacity - total,
-            f
-        );
+        size_t n = fread(*buf + total, 1, *cap - total, f);
+        total += n;
 
-        total += bytes_read;
-
-        if (bytes_read == 0) {
+        if (n == 0) {
             if (ferror(f)) {
-                free(buffer);
-                return EXIT_FAILURE;
+                return -1;
             }
-
-            if (feof(f)) {
-                break;
-            }
-
-            free(buffer);
-            return EXIT_FAILURE;
+            break;                  /* end of file */
         }
     }
 
-    *out = buffer;
     *out_len = total;
-
-    return EXIT_SUCCESS;
+    return 0;
 }
 
 int main(int argc, char *argv[]) {
@@ -77,28 +47,29 @@ int main(int argc, char *argv[]) {
     }
 
     FILE *f = fopen(argv[1], "rb");
-
-    if (!f) {
+    if (f == NULL) {
         perror(argv[1]);
         return EXIT_FAILURE;
     }
 
-    char *buffer = NULL;
-    size_t buffer_size = 0;
-
-    if (read_all(f, &buffer, &buffer_size) != EXIT_SUCCESS) {
-        fprintf(stderr, "Failed to read file\n");
+    size_t capacity = INITIAL_CAPACITY;
+    char *buffer = malloc(capacity);
+    if (buffer == NULL) {
         fclose(f);
+        fprintf(stderr, "out of memory\n");
         return EXIT_FAILURE;
     }
 
+    size_t len = 0;
+    int rc = read_all(f, &buffer, &capacity, &len);
     fclose(f);
+    if (rc != 0) {
+        free(buffer);
+        fprintf(stderr, "%s: read failed\n", argv[1]);
+        return EXIT_FAILURE;
+    }
 
-    /* Print as text (not suitable for arbitrary binary data) */
-    fwrite(buffer, 1, buffer_size, stdout);
-    putchar('\n');
-
+    fwrite(buffer, 1, len, stdout);
     free(buffer);
-
     return EXIT_SUCCESS;
 }
