@@ -37,8 +37,8 @@ typedef struct {
 } tsviva_options;
 
 
-/* Create with tsviva_open and release with tsviva_close. Do not copy a
- * reader: copies would share one field array. */
+/* Create with tsviva_open and release with tsviva_close. Do not copy a reader:
+ * copies would share one field array. */
 typedef struct {
     /* Public, read-only: valid until next call to tsviva_next. */
     const tsviva_field *fields;
@@ -56,16 +56,16 @@ typedef struct {
     int allow_ragged_;
 } tsviva_reader;
 
-/* Starts reading the len bytes at data. The reader borrows data: it must
- * stay valid and unmodified until tsviva_close. opts is read only during
- * this call and may be NULL for the defaults. Allocates nothing. */
+/* Starts reading the len bytes at data. The reader borrows data: it must stay
+ * valid and unmodified until tsviva_close. opts is read only during this call
+ * and may be NULL for the defaults. Allocates nothing. */
 void tsviva_open(tsviva_reader *r, const char *data, size_t len,
                  const tsviva_options *opts);
 
 /* Advances to the next row. Returns TSVIVA_ROW when r->fields holds it,
- * TSVIVA_DONE at the end of the input, or an error status (details in
- * r->err). After an error or DONE, further calls return the same result. The
- * fields are valid only until the next call. */
+ * TSVIVA_DONE at the end of the input, or an error status (details in r->err).
+ * After an error or DONE, further calls return the same result. The fields are
+ * valid only until the next call. */
 tsviva_status tsviva_next(tsviva_reader *r);
 
 /* Release the reader's memory. Safe to call after any result. */
