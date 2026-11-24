@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "tsviva.h"
+
 #define INITIAL_CAPACITY 4096
 
 /* Reads f to the end into *buf, which must point to a malloc'd block of
@@ -69,7 +71,21 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    fwrite(buffer, 1, len, stdout);
+    tsviva_reader r;
+    tsviva_open(&r, buffer, len, NULL);
+
+    tsviva_status st;
+    while ((st = tsviva_next(&r)) == TSVIVA_ROW) {
+        printf("row %zu: %zu fields\n", r.row, r.n_fields);
+    }
+
+    int exit_code = EXIT_SUCCESS;
+    if (st != TSVIVA_DONE) {
+        fprintf(stderr, "%s: parse error in row %zu\n", argv[1], r.err.row);
+        exit_code = EXIT_FAILURE;
+    }
+
+    tsviva_close(&r);
     free(buffer);
-    return EXIT_SUCCESS;
+    return exit_code;
 }
