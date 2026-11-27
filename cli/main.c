@@ -42,6 +42,21 @@ static int read_all(FILE *f, char **buf, size_t *cap, size_t *out_len) {
     return 0;
 }
 
+/* Print a field as plain text. Anything unprintable shows as \xNN, and
+ * backslash and | are escaped, to make unambiguous output. */
+static void print_field(const tsviva_field *f) {
+    for (size_t i = 0; i < f->len; i++) {
+        unsigned char c = (unsigned char)f->ptr[i];
+        if (c == '\\' || c == '|') {
+            printf("\\%c", c);
+        } else if (c >= 0x20 && c < 0x7f) {
+            putchar(c);
+        } else {
+            printf("\\x%02x", c);
+        }
+    }
+}
+
 int main(int argc, char *argv[]) {
     if (argc != 2) {
         fprintf(stderr, "Usage: %s <filename>\n", argv[0]);
@@ -76,7 +91,13 @@ int main(int argc, char *argv[]) {
 
     tsviva_status st;
     while ((st = tsviva_next(&r)) == TSVIVA_ROW) {
-        printf("row %zu: %zu fields\n", r.row, r.n_fields);
+        for (size_t i = 0; i < r.n_fields; i++) {
+            if (i > 0) {
+                putchar('|');
+            }
+            print_field(&r.fields[i]);
+        }
+        putchar('\n');
     }
 
     int exit_code = EXIT_SUCCESS;
