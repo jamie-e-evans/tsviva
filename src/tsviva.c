@@ -86,7 +86,7 @@ tsviva_status tsviva_next(tsviva_reader *r) {
             break;
         }
 
-        /* A CR is only valid as the first half of CR LF. */
+        /* CR is only valid as the first half of CR LF. */
         if (pos + 1 < len && data[pos + 1] == '\n') {
             pos += 2;
             break;
