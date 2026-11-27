@@ -1,5 +1,9 @@
-[![CI](https://github.com)](https://github.com)
-[![License: MIT](https://shields.io)](https://opensource.org)
+# tsviva
+
+A lightweight, C11-compliant TSV (Tab-Separated Values) parser library and CLI tool.
+
+[![CI](https://github.com/jamie-e-evans/tsviva/actions/workflows/ci.yml/badge.svg)](https://github.com/jamie-e-evans/tsviva/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Build & Test
 
