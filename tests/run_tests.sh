@@ -2,7 +2,7 @@
 # Run from the project root: sh tests/run_tests.sh
 # Valid fixtures must exit 0, invalid ones 1. When a .expected file sits next
 # to a fixture, the CLI's stdout has to match it exactly.
-cli=build/tsviva
+cli=${CLI:-build/tsviva}
 pass=0
 failed=0
 
@@ -29,6 +29,21 @@ check() {
         failed=$((failed + 1))
     fi
 }
+
+build/tsviva-asan: cli/main.c src/tsviva.c include/tsviva.h
+	mkdir -p build
+	$(CC) $(CPPFLAGS) $(CFLAGS) -fsanitize=address,undefined \
+		-fno-sanitize-recover=undefined -fno-omit-frame-pointer \
+		cli/main.c src/tsviva.c -o build/tsviva-asan
+
+.PHONY: asan
+asan: build/tsviva-asan
+	ASAN_OPTIONS=exitcode=86 UBSAN_OPTIONS=exitcode=86 \
+		CLI=build/tsviva-asan sh tests/run_tests.sh
+
+.PHONY: clean
+clean:
+	rm -rf build
 
 for f in tests/fixtures/valid/*.tsv; do check "$f" 0; done
 for f in tests/fixtures/invalid/*.tsv; do check "$f" 1; done
